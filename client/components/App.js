@@ -116,7 +116,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ product, quant, userId }),
       };
-      const response = await fetch('/', request);
+      const response = await fetch('/cart/addCart', request);
       const data = await response.json();
     }
   }

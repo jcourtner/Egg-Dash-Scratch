@@ -3,9 +3,10 @@ const db = require('../../db/db.js');
 const cartController = {};
 
 // user signs in and cart loads 'get' request
-cartController.getProductsUserCart = (req, res, next) => {
-  // console.log(req.params, 'req.params');
+cartController.getProductsUserCart = async (req, res, next) => {
   const { email } = req.params;
+  const queryParams = [email];
+
   const userCartQuery = `
 SELECT *
 FROM (SELECT c.product_id AS productId, c.id AS cartId, c.customer_id AS custId, 
@@ -15,50 +16,61 @@ LEFT OUTER JOIN products AS p
 ON c.product_id = p.id) AS i
 LEFT JOIN customers AS cust
 ON i.custid = cust.id
-WHERE cust.email = '${email}';
+WHERE cust.email = $1;
 	`;
 
-  db.query(userCartQuery)
-    .then((data) => {
-      // console.log(`this is the data from the user's CART: `, data.rows);
-      res.locals.userCart = data.rows;
-    })
-    .then(next)
-    .catch(() => {
-      // next(err)
-      next({
-        log: `cartController.getProductsUserCart: ERROR: Error getting the user's cart from database`,
-        message: {
-          err:
-            'Error occurred in cartController.getProductsUserCart. Check server logs for more details.',
-        },
-      });
+  try {
+    const data = await db.query(userCartQuery, queryParams);
+    res.locals.userCart = data.rows;
+    return next();
+  } catch (err) {
+    next({
+      log: `cartController.getProductsUserCart: ERROR: Error getting the user's cart from database`,
+      message: {
+        err:
+          'Error occurred in cartController.getProductsUserCart. Check server logs for more details.',
+      },
     });
+  }
 };
 
 // user adds item to cart = 'post' request
-cartController.addProductsUserCart = (req, res, next) => {
+cartController.addProductsUserCart = async (req, res, next) => {
   const { customer_id, product_id, quantity } = req.body;
+  const queryParams = [customer_id, product_id, quantity];
 
-  let addCart = `INSERT INTO cart (id, customer_id, product_id, quantity) VALUES (nextval('cart_sequence'), '${customer_id}', '${product_id}', '${quantity}')`;
+  let addCart = `INSERT INTO cart (id, customer_id, product_id, quantity) VALUES (nextval('cart_sequence'), $1, $2, $3)`;
 
-  db.query(addCart)
-    .then((data) => {
-      // console.log(`this is the data from the user's CART: `, data.rows);
-      res.locals.userCart = data.rows;
-    })
-    .then(next)
-    .catch(() => {
-      // next(err)
-      next({
-        log: `cartController.getProductsUserCart: ERROR: Error putting the user's cart in the database`,
-        message: {
-          err:
-            'Error occurred in cartController.getProductsUserCart. Check server logs for more details.',
-        },
-      });
+  try {
+    const data = await db.query(addCart, queryParams);
+    res.locals.userCart = data.rows;
+  } catch (err) {
+    next({
+      log: `cartController.getProductsUserCart: ERROR: Error putting the user's cart in the database`,
+      message: {
+        err:
+          'Error occurred in cartController.getProductsUserCart. Check server logs for more details.',
+      },
     });
+  }
 };
+
+//   db.query(addCart)
+//     .then((data) => {
+//       // console.log(`this is the data from the user's CART: `, data.rows);
+//       res.locals.userCart = data.rows;
+//     })
+//     .then(next)
+//     .catch(() => {
+//       // next(err)
+//       next({
+//         log: `cartController.getProductsUserCart: ERROR: Error putting the user's cart in the database`,
+//         message: {
+//           err:
+//             'Error occurred in cartController.getProductsUserCart. Check server logs for more details.',
+//         },
+//       });
+//     });
 
 // user adds item to cart - 'post' request
 // cartController.addProductsUserCart = (req, res, next) => {
